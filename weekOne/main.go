@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
 
 func main() {
@@ -44,7 +45,11 @@ func main() {
 	f("B")
 
 	structs()
-
+	interfaces()
+	err := practice(os.Stdin, os.Stdout)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 
