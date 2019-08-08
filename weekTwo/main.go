@@ -1,5 +1,10 @@
 package main
 
 func main() {
-	gort()
+	//gort()
+	//chans()
+	//multWSelect()
+	//multiproc()
+	//cntxt()
+	getPage()
 }
