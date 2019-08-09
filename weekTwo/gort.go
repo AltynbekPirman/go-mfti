@@ -9,7 +9,7 @@ import (
 
 const (
 	iterationsNum = 7
-	goroutinesNum = 5
+	goroutinesNum = 6
 )
 
 func doSomeWork(in int) {
