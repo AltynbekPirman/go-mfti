@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"hash/crc32"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -22,16 +23,17 @@ func main() {
 	//rateLim()
 	//raceCond()
 	//cnAtomic()
-	inputData := []int{1, 2}
+	inputData := []int{0, 1, 1, 2, 3, 5, 8}
 	hashSignJobs := []job{
 		job(func(in, out chan interface{}) {
 			for _, fibNum := range inputData {
-				fmt.Println("job1: ", fibNum)
 				out <- fibNum
 			}
+			close(out)
 		}),
 		job(SingleHash),
 		job(MultiHash),
+		job(CombineResults),
 		job(func(in, out chan interface{}) {
 			dataRaw := <-in
 			data, ok := dataRaw.(string)
@@ -46,60 +48,73 @@ func main() {
 
 
 func ExecutePipeline(jobs ...job) {
-	in := make(chan interface{})
-	out := make(chan interface{})
-
-	for _, j := range jobs {
-		go j(in, out)
+	chans := make([]chan interface{}, 0)
+	chans = append(chans, make(chan interface{}))
+	for _, _ = range jobs{
+		chans = append(chans, make(chan interface{}))
 	}
-	time.Sleep(time.Second*20)
-}
 
+	for i, j := range jobs {
+		go j(chans[i], chans[i+1])
+	}
+
+	time.Sleep(time.Second*90)
+}
 func SingleHash(in, out chan interface{}) {
-	var res, a, b string
-	wg := &sync.WaitGroup{}
-	for data := range out {
-		fmt.Println(fmt.Sprintf("%v", data))
-		wg.Add(2)
-		go func(d interface{}){
-			defer wg.Done()
-			a = DataSignerCrc32(fmt.Sprintf("%s", data))
-		}(data)
-		go func(d interface{}){
-			defer wg.Done()
-			b = DataSignerMd5(fmt.Sprintf("%v", data))
-		}(data)
-		wg.Wait()
-		b = DataSignerCrc32(b)
-		res = fmt.Sprintf("single hash: %v~%v", a, b)
-		fmt.Println(res)
-		in <- res
+	defer func() {
+		fmt.Println("closing singlehash")
+		close(out)
+	}()
+	for data := range in {
+		a := DataSignerCrc32(fmt.Sprintf("%v", data))
+		b := DataSignerCrc32(DataSignerMd5(fmt.Sprintf("%v", data)))
+		out <- fmt.Sprintf("%s~%s", a, b)
+		runtime.Gosched()
+		fmt.Println(fmt.Sprintf("%s~%s", a, b))
+		runtime.Gosched()
 	}
 }
 
 func MultiHash(in, out chan interface{}) {
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
-	var res string
-	var multiHashes = make(map [int]string)
+	defer func() {
+		fmt.Println("closing multihash")
+		close(out)
+	}()
 	for d := range in {
+		var res string
+		var multiHashes = make(map [int]string)
 		for i := 0; i < 6; i++ {
 			wg.Add(1)
-			go func(ii int) {
+			go func(ind int) {
 				defer wg.Done()
 				mu.Lock()
-				multiHashes[ii] = DataSignerCrc32(fmt.Sprintf("%d%s", ii, d))
+				multiHashes[ind] = DataSignerCrc32(fmt.Sprintf("%d%s", ind, d))
 				mu.Unlock()
 			}(i)
 		}
 		wg.Wait()
 		for i := 0; i < 6; i++ {
-			mu.Lock()
 			res += multiHashes[i]
-			mu.Unlock()
 		}
 		out <- res
+		fmt.Println("to combine: ", res)
+		runtime.Gosched()
 	}
+}
+
+func CombineResults(in, out chan interface{}) {
+	var res string
+	var r []string
+	for i := range in {
+		r = append(r, fmt.Sprintf("_%v", i))
+	}
+	for _, s := range r {
+		res += s
+	}
+	out<-res[1:]
+
 }
 
 

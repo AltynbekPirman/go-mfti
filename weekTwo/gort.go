@@ -26,7 +26,7 @@ func formatWork(in, j int) string  {
 		"iter", j, strings.Repeat("*", j))
 }
 
-// channels are used to pass data between channels
+// channels are used to pass data between goroutines
 func chans() {
 	ch1 := make(chan int, 1) // chan with buffer 1 (chan can store one more value)
 	go func(in chan int) {

@@ -108,6 +108,7 @@ func TestSigner(t *testing.T) {
 			for _, fibNum := range inputData {
 				out <- fibNum
 			}
+			close(out)
 		}),
 		job(SingleHash),
 		job(MultiHash),
@@ -135,7 +136,7 @@ func TestSigner(t *testing.T) {
 	}
 
 	if end > expectedTime {
-		t.Errorf("execition too long\nGot: %s\nExpected: <%s", end, time.Second*3)
+		t.Errorf("execution too long\nGot: %s\nExpected: <%s", end, expectedTime)
 	}
 
 	// 8 потому что 2 в SingleHash и 6 в MultiHash
@@ -146,4 +147,8 @@ func TestSigner(t *testing.T) {
 		t.Errorf("not enough hash-func calls")
 	}
 
+	if int(DataSignerMd5Counter) != len(inputData) ||
+		int(DataSignerCrc32Counter) != len(inputData)*8 {
+		t.Errorf("not enough hash-func calls1")
+	}
 }
