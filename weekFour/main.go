@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"time"
 )
 
 func main() {
@@ -12,6 +13,11 @@ func main() {
 	go httpServeWithStruct()
 	go getParams()
 	go login()
+	go serveFile()
+	go startServer()
+	time.Sleep(3 * time.Second)
+	runGet()
+	runGetFullReq()
 	newHTTPServer()
 }
 
