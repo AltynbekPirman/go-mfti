@@ -4,6 +4,8 @@ package main
 func main() {
 	//handledFunc()
 	//middleware()
-	ctValue()
-
+	//ctValue()
+	//routers()
+	//mixRouters()
+	validate()
 }
